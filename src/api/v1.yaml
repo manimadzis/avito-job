@@ -1,0 +1,240 @@
+openapi: 3.0.0
+info:
+  title: Bank service API
+  version: 0.0.1
+servers:
+  - url: http://localhost:9876/
+    description: Localhost server
+
+
+tags:
+  - name: user
+  - name: report
+paths:
+  /v1/user/{user_id}/reserve:
+    post:
+      tags:
+        - user
+      summary: Зарезервировать деньги
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        $ref: "#/components/requestBodies/service_order_cost"
+      responses:
+        '204':
+          description: Успешно зарезервировано
+        '400':
+          $ref: "#/components/responses/error"
+
+  /v1/user/balance/{user_id}:
+    get:
+      tags:
+        - user
+      summary: Получить баланс пользователя
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      responses:
+        '200':
+          description: Успешно получен баланс пользователя
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/balance"
+        '400':
+          $ref: "#/components/schemas/error"
+    post:
+      tags:
+        - user
+      summary: Изменить баланс пользователя
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/cost"
+      responses:
+        '201':
+          description: Успешно изменен баланс пользователя
+        '400':
+          $ref: "#/components/responses/error"
+  /v1/report/{year}/{month}:
+    get:
+      tags:
+        - report
+      summary: Получить месячный отчет
+      parameters:
+        - name: year
+          in: path
+          required: True
+          description: Год
+          schema:
+            type: integer
+        - name: month
+          in: path
+          required: True
+          description: Год
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешно получена ссылка на отчет
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    description: Ссылка на отчет
+        '400':
+          description: Невалидные данные
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/user/history/{user_id}:
+    get:
+      tags:
+        - user
+      summary: Получить историю операций
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+        - name: offset
+          schema:
+            type: integer
+          in: query
+        - name: limit
+          schema:
+            type: integer
+          in: query
+        - name: sort_by
+          schema:
+            type: string
+            enum:
+              - timestamp
+              - amount
+          in: query
+          description: Поле сортировки
+        - name: reverse
+          schema:
+            type: boolean
+          in: query
+          description: False - по возрастанию, True - по убыванию
+      
+      responses:
+        '200':
+          description: Успешно получена история операций
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/history_record"
+        '400':
+          description: Невалидные данные
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+
+
+components:
+  schemas:
+    history_record:
+      type: object
+      properties:
+        date:
+          type: integer
+          description: Время выполнения операции
+        cost:
+          type: integer
+          description: Потраченная сумма
+        description:
+          type: string
+          description: Комментарий
+      required:
+        - date
+        - cost
+        - description
+
+    error:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: Код ошибки
+          example: 3
+        msg:
+          type: string
+          description: Описание ошибки
+          example: invalid user id
+      required:
+        - code
+        - msg
+
+    balance:
+      type: object
+      properties:
+        balance:
+          type: string
+          description: Баланс пользователя
+          example: 123.99
+      required:
+        - balance
+
+    cost:
+      type: object
+      properties:
+        cost:
+          type: string
+          description: Количество денег, больше 0
+          example: 100.13
+      required:
+        - cost
+
+  requestBodies:
+    service_order_cost:
+      content:
+        application/json:
+          schema:
+            properties:
+              service_id:
+                type: integer
+                description: Идентификатор услуги
+                example: 123
+              order_id:
+                type: integer
+                description: Идентификатор заказа
+                example: 12
+              cost:
+                type: string
+                description: Количество денег
+                example: 100.13
+            required:
+              - user_id
+              - order_id
+              - service_id
+              - cost
+  parameters:
+    user_id:
+      name: user_id
+      in: path
+      description: Идентификатор пользователя
+      example: 111
+      required: True
+      schema:
+        type: integer
+  responses:
+    error:
+      description: Невалидные данные
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/error"
+    
+      
+    
+              
