@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"avito-job/src/internal/domain"
+	"avito-job/internal/domain"
 	"context"
 )
 

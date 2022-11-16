@@ -1,9 +1,9 @@
 package postgres
 
 import (
-	"avito-job/src/internal/domain"
-	"avito-job/src/internal/repository"
-	"avito-job/src/pkg/logging"
+	"avito-job/internal/domain"
+	repository2 "avito-job/internal/repository"
+	"avito-job/pkg/logging"
 	"context"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -11,7 +11,7 @@ import (
 
 type repo struct {
 	db     *sqlx.DB
-	logger *logging.Logger
+	logger logging.Logger
 }
 
 func (r repo) GetBalance(ctx context.Context, userId uint) (domain.Money, error) {
@@ -22,16 +22,16 @@ func (r repo) GetBalance(ctx context.Context, userId uint) (domain.Money, error)
 	if err != nil {
 		if pqerr, ok := err.(*pq.Error); ok {
 			if pqerr.Code.Name() == "no_data_found" {
-				r.logger.Debugf("GetBalance error: %v", repository.ErrUnknownUser)
-				return domain.Money(0), repository.ErrUnknownUser
+				r.logger.Debugf("GetBalance error: %v", repository2.ErrUnknownUser)
+				return domain.Money(0), repository2.ErrUnknownUser
 			}
 		}
-		r.logger.Debugf("GetBalance error: %v", repository.ErrUnknownUser)
+		r.logger.Debugf("GetBalance error: %v", repository2.ErrUnknownUser)
 		return domain.Money(0), err
 	}
 	err = row.Scan(&amount)
 	if err != nil {
-		r.logger.Debugf("GetBalance error: %v", repository.ErrUnknownUser)
+		r.logger.Debugf("GetBalance error: %v", repository2.ErrUnknownUser)
 	}
 	return domain.Float64ToMoney(amount), err
 }
@@ -83,7 +83,7 @@ func (r repo) RecognizeRevenue(
 	return err
 }
 
-func NewRepository(db *sqlx.DB, logger *logging.Logger) repository.Repository {
+func NewRepository(db *sqlx.DB, logger logging.Logger) repository2.Repository {
 	return &repo{
 		db:     db,
 		logger: logger,
