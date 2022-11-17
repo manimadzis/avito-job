@@ -36,7 +36,7 @@ func (h *Handler) initRouter() {
 	h.router.POST("/v1/user/:user_id/recognize", h.recognizeRevenue)
 	h.router.GET("/v1/user/:user_id/balance", h.getBalance)
 	h.router.POST("/v1/user/:user_id/balance", h.replenishBalance)
-	h.router.GET("/v1/user/:user_id/history", h.getHistory)
+	h.router.GET("/v1/user/:user_id/history/:json", h.getHistory)
 	h.router.GET("/v1/report/:year/:month", h.getReport)
 }
 
@@ -151,10 +151,8 @@ func (h *Handler) replenishBalance(w http.ResponseWriter, r *http.Request, ps ht
 
 func (h *Handler) getHistory(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	h.logger.Tracef("getHistory handle request %v", r)
-	data, err := h.handleBody(w, r)
-	if err != nil {
-		return
-	}
+	var err error
+	data := ps.ByName("json")
 
 	dto := domain.GetHistoryDTO{}
 	dto.UserId, err = h.getUserId(ps)
@@ -164,7 +162,7 @@ func (h *Handler) getHistory(w http.ResponseWriter, r *http.Request, ps httprout
 		return
 	}
 
-	if err := h.parseBytes(data, &dto); err != nil {
+	if err := h.parseBytes([]byte(data), &dto); err != nil {
 		h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
 		h.logger.Error(err)
 		return

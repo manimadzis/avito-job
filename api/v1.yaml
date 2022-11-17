@@ -19,14 +19,27 @@ paths:
       parameters:
         - $ref: "#/components/parameters/user_id"
       requestBody:
-        $ref: "#/components/requestBodies/service_order_cost"
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/service_order_amount"
+                - type: object
+                  properties:
+                    description:
+                      type: string
+                      description: Описание
+                      example: "Оплата услуги связи"
       responses:
         '204':
           description: Успешно зарезервировано
         '400':
-          $ref: "#/components/responses/error"
+          $ref: "#/components/responses/bad_request_error"
+        '500':
+          $ref: "#/components/responses/internal_server_error"
 
-  /v1/user/balance/{user_id}:
+
+  /v1/user/{user_id}/balance:
     get:
       tags:
         - user
@@ -41,7 +54,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/balance"
         '400':
-          $ref: "#/components/schemas/error"
+          $ref: "#/components/schemas/bad_request_error"
+        '500':
+          $ref: "#/components/responses/internal_server_error"
+
     post:
       tags:
         - user
@@ -52,12 +68,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/cost"
+              $ref: "#/components/schemas/amount"
       responses:
         '201':
           description: Успешно изменен баланс пользователя
         '400':
-          $ref: "#/components/responses/error"
+          $ref: "#/components/responses/bad_request_error"
+        '500':
+          $ref: "#/components/responses/internal_server_error"
+
+
   /v1/report/{year}/{month}:
     get:
       tags:
@@ -87,69 +107,90 @@ paths:
                   url:
                     type: string
                     description: Ссылка на отчет
+                    example: http://localhost:80/somefile.csv
         '400':
-          description: Невалидные данные
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/error"
+          $ref: "#/components/responses/bad_request_error"
+        '500':
+          $ref: "#/components/responses/internal_server_error"
 
-  /v1/user/history/{user_id}:
+
+  /v1/user/{user_id}/history/{json}:
     get:
       tags:
         - user
       summary: Получить историю операций
       parameters:
         - $ref: "#/components/parameters/user_id"
-        - name: offset
+        - name: json
+          in: path
           schema:
-            type: integer
-          in: query
-        - name: limit
-          schema:
-            type: integer
-          in: query
-        - name: sort_by
-          schema:
-            type: string
-            enum:
-              - timestamp
-              - amount
-          in: query
-          description: Поле сортировки
-        - name: reverse
-          schema:
-            type: boolean
-          in: query
-          description: False - по возрастанию, True - по убыванию
-      
+            $ref: "#/components/schemas/history_params"
+          required: true
+
       responses:
         '200':
           description: Успешно получена история операций
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/history_record"
+                properties:
+                  length:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/history_record"
         '400':
-          description: Невалидные данные
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/error"
+          $ref: "#/components/responses/bad_request_error"
+        '500':
+          $ref: "#/components/responses/internal_server_error"
 
+  /v1/user/{user_id}/balance/recognize:
+    post:
+      tags:
+        - user
+      summary: Признать выручку
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/service_order_amount"
+      responses:
+        '204':
+          description: Успешно признана
+        '400':
+          $ref: "#/components/responses/bad_request_error"
+        '500':
+          $ref: "#/components/responses/internal_server_error"
 
 
 components:
   schemas:
+    history_params:
+      type: object
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        sort_by:
+          type: string
+          enum:
+            - timestamp
+            - amount
+          description: Поле сортировки
+        reverse:
+          type: boolean
+          description: False - по возрастанию, True - по убыванию
     history_record:
       type: object
       properties:
         date:
           type: integer
           description: Время выполнения операции
-        cost:
+        amount:
           type: integer
           description: Потраченная сумма
         description:
@@ -157,22 +198,17 @@ components:
           description: Комментарий
       required:
         - date
-        - cost
+        - amount
         - description
 
-    error:
+    bad_request_error:
       type: object
       properties:
-        code:
-          type: integer
-          description: Код ошибки
-          example: 3
         msg:
           type: string
           description: Описание ошибки
           example: invalid user id
       required:
-        - code
         - msg
 
     balance:
@@ -185,39 +221,45 @@ components:
       required:
         - balance
 
-    cost:
+    amount:
       type: object
       properties:
-        cost:
+        amount:
           type: string
           description: Количество денег, больше 0
           example: 100.13
       required:
-        - cost
+        - amount
+    service_order_amount:
+      type: object
+      properties:
+        service_id:
+          type: integer
+          description: Идентификатор услуги
+          example: 123
+        order_id:
+          type: integer
+          description: Идентификатор заказа
+          example: 345
+        amount:
+          type: string
+          description: Количество денег
+          example: 100.13
+      required:
+        - service_id
+        - order_id
+        - amount
 
-  requestBodies:
-    service_order_cost:
+  responses:
+    bad_request_error:
+      description: Невалидные данные
       content:
         application/json:
           schema:
-            properties:
-              service_id:
-                type: integer
-                description: Идентификатор услуги
-                example: 123
-              order_id:
-                type: integer
-                description: Идентификатор заказа
-                example: 12
-              cost:
-                type: string
-                description: Количество денег
-                example: 100.13
-            required:
-              - user_id
-              - order_id
-              - service_id
-              - cost
+            $ref: "#/components/schemas/bad_request_error"
+    internal_server_error:
+      description: Произошла внутренняя ошибка
+
   parameters:
     user_id:
       name: user_id
@@ -227,14 +269,6 @@ components:
       required: True
       schema:
         type: integer
-  responses:
-    error:
-      description: Невалидные данные
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/error"
-    
       
     
               
