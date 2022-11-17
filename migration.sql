@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS "transaction" (
     order_id bigint,
     "description" text,
     "timestamp" timestamp DEFAULT CURRENT_TIMESTAMP,
-    unique (user_id, amount, service_od, order_id)
+    unique (user_id, amount, service_id, order_id)
 );
 
 CREATE TABLE IF NOT EXISTS "service" (
