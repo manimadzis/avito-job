@@ -6,3 +6,4 @@ db_username: postgres
 db_password: postgres
 database_name: postgres
 log_level: trace
+file_server_directory: ./files

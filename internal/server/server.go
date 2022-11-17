@@ -29,8 +29,11 @@ func NewServer(config *Config, service service.Service, logger logging.Logger) S
 		service: service,
 		config:  config,
 		httpServer: &http.Server{
-			Addr:         fmt.Sprintf("%s:%s", config.Host, config.Port),
-			Handler:      v1.NewHandler(httprouter.New(), service, logger),
+			Addr: fmt.Sprintf("%s:%s", config.Host, config.Port),
+			Handler: v1.NewHandler(&v1.Config{
+				Directory: config.FileServerDirectory,
+				ServerURI: fmt.Sprintf("%s:%s", config.Host, config.Port),
+			}, httprouter.New(), service, logger),
 			ReadTimeout:  15 * time.Second,
 			WriteTimeout: 15 * time.Second,
 		},

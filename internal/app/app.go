@@ -43,7 +43,7 @@ func (a *App) Start() error {
 	}
 	defer a.db.Close()
 	a.repo = postgres.NewRepository(a.db, a.logger)
-	a.service = service.NewService(a.repo, a.logger)
+	a.service = service.NewService(&service.Config{FileServerDirectory: a.config.FileServerDirectory}, a.repo, a.logger)
 	a.server = server.NewServer(&server.Config{
 		Host: a.config.ServerHost,
 		Port: a.config.ServerPort,

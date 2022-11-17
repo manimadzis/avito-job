@@ -22,6 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Cant load config: %v", err)
 	}
+	log.Println(*conf)
 	if err := logging.Init(conf.LogLevel); err != nil {
 		log.Fatalf("Cant' init logger: %v", err)
 	}

@@ -5,14 +5,15 @@ import (
 )
 
 type Config struct {
-	ServerHost   string `yaml:"server_host" mapstructure:"server_host"`
-	ServerPort   string `yaml:"server_port" mapstructure:"server_port"`
-	DBHost       string `yaml:"db_host" mapstructure:"db_host"`
-	DBPort       string `yaml:"db_port" mapstructure:"db_port"`
-	DBUsername   string `yaml:"db_username" mapstructure:"db_username"`
-	DBPassword   string `yaml:"db_password" mapstructure:"db_password"`
-	DatabaseName string `yaml:"database_name" mapstructure:"database_name"`
-	LogLevel     string `yaml:"log_level" mapstructure:"log_level"`
+	ServerHost          string `mapstructure:"server_host"`
+	ServerPort          string `mapstructure:"server_port"`
+	DBHost              string `mapstructure:"db_host"`
+	DBPort              string `mapstructure:"db_port"`
+	DBUsername          string `mapstructure:"db_username"`
+	DBPassword          string `mapstructure:"db_password"`
+	DatabaseName        string `mapstructure:"database_name"`
+	LogLevel            string `mapstructure:"log_level"`
+	FileServerDirectory string `mapstructure:"file_server_directory"`
 }
 
 func Load(src string) (*Config, error) {

@@ -19,13 +19,15 @@ type Handler struct {
 	router  *httprouter.Router
 	service service.Service
 	logger  logging.Logger
+	config  *Config
 }
 
-func NewHandler(router *httprouter.Router, service service.Service, logger logging.Logger) *Handler {
+func NewHandler(config *Config, router *httprouter.Router, service service.Service, logger logging.Logger) *Handler {
 	h := &Handler{
 		router:  router,
 		service: service,
 		logger:  logger,
+		config:  config,
 	}
 	h.initRouter()
 	return h
@@ -38,6 +40,7 @@ func (h *Handler) initRouter() {
 	h.router.POST("/v1/user/:user_id/balance", h.replenishBalance)
 	h.router.GET("/v1/user/:user_id/history/:json", h.getHistory)
 	h.router.GET("/v1/report/:year/:month", h.getReport)
+	h.router.ServeFiles("/files/*filepath", http.Dir(h.config.Directory))
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -214,22 +217,16 @@ func (h *Handler) getReport(w http.ResponseWriter, r *http.Request, ps httproute
 		return
 	}
 
-	report, err := h.service.GetMonthlyReport(r.Context(), &dto)
+	path, err := h.service.GetMonthlyReportPath(r.Context(), &dto)
 	if err != nil {
-		h.logger.Errorf("GetMonthlyReport: %v", err)
+		h.logger.Errorf("GetMonthlyReportPath: %v", err)
 		h.sendResponse(w, http.StatusInternalServerError, nil)
 		return
 	}
-	if report == nil {
-		report = domain.MonthlyReport{}
-	}
-
 	h.sendResponse(w, http.StatusOK, struct {
-		Report domain.MonthlyReport `json:"report"`
-		Length int                  `json:"length"`
+		URL string `json:"url"`
 	}{
-		Report: report,
-		Length: len(report),
+		URL: fmt.Sprintf("http://%s/files/%s", h.config.ServerURI, path),
 	})
 }
 

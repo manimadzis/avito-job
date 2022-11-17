@@ -87,12 +87,12 @@ func (r repo) RecognizeRevenue(ctx context.Context, dto *domain.RecognizeRevenue
 }
 
 func (r repo) GetMonthlyReport(ctx context.Context, dto *domain.GetMonthlyReportDTO) (domain.MonthlyReport, error) {
-	r.logger.Tracef("GetMonthlyReport(%v, %#v)", ctx, *dto)
+	r.logger.Tracef("GetMonthlyReportPath(%v, %#v)", ctx, *dto)
 	rows, err := r.db.QueryxContext(ctx, "SELECT * FROM get_month_report($1, $2)",
 		dto.Month,
 		dto.Year)
 	if err != nil {
-		r.logger.Errorf("GetMonthlyReport error: %v", err)
+		r.logger.Errorf("GetMonthlyReportPath error: %v", err)
 		return nil, err
 	}
 
@@ -108,7 +108,7 @@ func (r repo) GetMonthlyReport(ctx context.Context, dto *domain.GetMonthlyReport
 }
 
 func (r repo) GetHistory(ctx context.Context, dto *domain.GetHistoryDTO) (domain.History, error) {
-	r.logger.Tracef("GetMonthlyReport(%v, %#v)", ctx, *dto)
+	r.logger.Tracef("GetMonthlyReportPath(%v, %#v)", ctx, *dto)
 	var rows *sqlx.Rows
 	var err error
 	if dto.SortBy == "" || dto.SortBy == domain.GetHistoryDTOSortByTimestamp {
@@ -130,7 +130,7 @@ func (r repo) GetHistory(ctx context.Context, dto *domain.GetHistoryDTO) (domain
 				return nil, repository.ErrUnknownUser
 			}
 		}
-		r.logger.Errorf("GetMonthlyReport error: %v", err)
+		r.logger.Errorf("GetMonthlyReportPath error: %v", err)
 		return nil, err
 	}
 	var row domain.HistoryRow
