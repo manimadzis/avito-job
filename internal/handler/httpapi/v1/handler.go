@@ -33,6 +33,7 @@ func NewHandler(router *httprouter.Router, service service.Service, logger loggi
 
 func (h *Handler) initRouter() {
 	h.router.POST("/v1/user/:user_id/reserve", h.reserveBalance)
+	h.router.POST("/v1/user/:user_id/recognize", h.recognizeRevenue)
 	h.router.GET("/v1/user/:user_id/balance", h.getBalance)
 	h.router.POST("/v1/user/:user_id/balance", h.replenishBalance)
 	h.router.GET("/v1/user/:user_id/history", h.getHistory)
@@ -44,20 +45,43 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) reserveBalance(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	h.logger.Tracef("reserveBalance handle request %v", r)
+	data, err := h.handleBody(w, r)
+	if err != nil {
+		return
+	}
 
+	dto := domain.ReserveMoneyDTO{}
+
+	dto.UserId, err = h.getUserId(ps)
+
+	if err := h.parseBytes(data, &dto); err != nil {
+		h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
+		h.logger.Error(err)
+		return
+	}
+
+	err = h.service.ReserveMoney(r.Context(), &dto)
+	if err != nil {
+		if err == repository.ErrUnknownUser {
+			h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
+			h.logger.Error("reserveBalance: %v", err)
+			return
+		} else if err == repository.ErrNotEnoughMoney {
+			h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
+			return
+		} else if err == repository.ErrTransactionAlreadyExists {
+			h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
+			return
+		}
+	}
+
+	h.sendResponse(w, http.StatusNoContent, nil)
 }
 
 func (h *Handler) getBalance(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	h.logger.Tracef("getBalance handle request %v", r)
-	data, err := io.ReadAll(r.Body)
-	h.logger.Debugf("Body: %v", string(data))
-
-	if err != nil {
-		h.sendResponse(w, http.StatusInternalServerError, nil)
-		h.logger.Errorf("Failed to read body: %v", err)
-		return
-	}
-
+	var err error
 	dto := domain.GetBalanceDTO{}
 	dto.UserId, err = h.getUserId(ps)
 	if err != nil {
@@ -76,7 +100,7 @@ func (h *Handler) getBalance(w http.ResponseWriter, r *http.Request, ps httprout
 	if err != nil {
 		h.logger.Errorf("Failed to get user: %v", err)
 		if err == repository.ErrUnknownUser {
-			h.sendError(w, http.StatusNotFound, ErrorResponse{Msg: err.Error()})
+			h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
 			return
 		}
 		h.sendResponse(w, http.StatusInternalServerError, nil)
@@ -92,11 +116,12 @@ func (h *Handler) getBalance(w http.ResponseWriter, r *http.Request, ps httprout
 
 func (h *Handler) replenishBalance(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	h.logger.Tracef("replenishBalance handle request %v", r)
-	data, err := io.ReadAll(r.Body)
-	h.logger.Debugf("Body: %v", string(data))
-	h.logger.Debugf("Params: %v", ps)
-	dto := domain.ReplenishBalanceDTO{}
+	data, err := h.handleBody(w, r)
+	if err != nil {
+		return
+	}
 
+	dto := domain.ReplenishBalanceDTO{}
 	dto.UserId, err = h.getUserId(ps)
 	if err != nil {
 		h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
@@ -114,7 +139,7 @@ func (h *Handler) replenishBalance(w http.ResponseWriter, r *http.Request, ps ht
 	if err != nil {
 		h.logger.Errorf("Failed replenish user balance: %v", err)
 		if err == repository.ErrUnknownUser {
-			h.sendError(w, http.StatusNotFound, ErrorResponse{Msg: err.Error()})
+			h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
 			return
 		}
 		h.sendResponse(w, http.StatusInternalServerError, nil)
@@ -126,12 +151,8 @@ func (h *Handler) replenishBalance(w http.ResponseWriter, r *http.Request, ps ht
 
 func (h *Handler) getHistory(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	h.logger.Tracef("getHistory handle request %v", r)
-	data, err := io.ReadAll(r.Body)
-	h.logger.Debugf("Body: %v", string(data))
-
+	data, err := h.handleBody(w, r)
 	if err != nil {
-		h.sendResponse(w, http.StatusInternalServerError, nil)
-		h.logger.Errorf("Failed to read body: %v", err)
 		return
 	}
 
@@ -149,12 +170,20 @@ func (h *Handler) getHistory(w http.ResponseWriter, r *http.Request, ps httprout
 		return
 	}
 
-	//history, err := h.service.GetHistory(r.Context(), &dto)
-	//if err != nil {
-	//	h.sendResponse(w, http.StatusInternalServerError, nil)
-	//	h.logger.Error(ErrInvalidUserId, " ", err)
-	//}
+	history, err := h.service.GetHistory(r.Context(), &dto)
+	if err != nil {
+		if err == repository.ErrUnknownUser {
+			h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: ErrUnknownUser.Error()})
+			return
+		}
+		h.sendResponse(w, http.StatusInternalServerError, nil)
+		h.logger.Error(err)
+	}
+	if history == nil {
+		history = domain.History{}
+	}
 
+	h.sendResponse(w, http.StatusOK, history)
 }
 
 func (h *Handler) getReport(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -206,13 +235,45 @@ func (h *Handler) getReport(w http.ResponseWriter, r *http.Request, ps httproute
 	})
 }
 
+func (h *Handler) recognizeRevenue(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	h.logger.Tracef("recognizeRevenue handle request %v", r)
+	data, err := h.handleBody(w, r)
+	if err != nil {
+		return
+	}
+
+	dto := domain.RecognizeRevenueDTO{}
+	dto.UserId, err = h.getUserId(ps)
+	if err != nil {
+		h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
+		h.logger.Error(err)
+		return
+	}
+
+	if err := h.parseBytes(data, &dto); err != nil {
+		h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
+		h.logger.Error(err)
+		return
+	}
+
+	err = h.service.RecognizeRevenue(r.Context(), &dto)
+	if err != nil {
+		if err == repository.ErrUnknownTransaction {
+			h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
+			return
+		}
+		h.logger.Error(err)
+		h.sendResponse(w, http.StatusInternalServerError, nil)
+	}
+	h.sendResponse(w, http.StatusNoContent, nil)
+}
+
 func (h *Handler) sendError(w http.ResponseWriter, status int, response ErrorResponse) {
 	h.sendResponse(w, status, response)
 }
 
 func (h *Handler) sendResponse(w http.ResponseWriter, status int, data interface{}) {
 	h.logger.Tracef("sendResponse(%v, %v, %v)", w, status, data)
-	w.WriteHeader(status)
 
 	var jsonData []byte
 	var err error
@@ -221,9 +282,11 @@ func (h *Handler) sendResponse(w http.ResponseWriter, status int, data interface
 		if err != nil {
 			h.logger.Error("Failed to Marshal errorDTO: %v: data=%v", err, data)
 		}
-		h.logger.Debug(string(jsonData))
+		h.logger.Debugf("json: %s", string(jsonData))
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Write(jsonData)
 	}
+	w.WriteHeader(status)
 }
 
 func (h *Handler) parseBytes(data []byte, dto domain.DTO) error {
@@ -251,4 +314,20 @@ func (h *Handler) getUserId(ps httprouter.Params) (uint, error) {
 		}
 	}
 	return 0, fmt.Errorf("no user_id")
+}
+
+func (h *Handler) handleBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
+	data, err := io.ReadAll(r.Body)
+	h.logger.Debugf("Body: %v", string(data))
+	if err != nil {
+		h.sendResponse(w, http.StatusInternalServerError, nil)
+		h.logger.Errorf("Failed to read body: %v", err)
+		return nil, err
+	}
+	if len(data) == 0 {
+		h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: ErrEmptyBody.Error()})
+		h.logger.Error(ErrEmptyBody)
+		return nil, ErrEmptyBody
+	}
+	return data, nil
 }

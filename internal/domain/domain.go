@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -28,18 +29,16 @@ func (m *Money) Scan(src interface{}) error {
 	switch src := src.(type) {
 	case string:
 		tmpm, err = StringToMoney(src)
+	case []uint8:
+		tmpm, err = StringToMoney(string(src))
 	default:
-		err = fmt.Errorf("src must be a string")
+		err = fmt.Errorf("src must be a string or []uint8 not %s", reflect.TypeOf(src).String())
 	}
 	if err != nil {
 		return err
 	}
 	*m = tmpm
 	return nil
-}
-
-func Float64ToMoney(x float64) Money {
-	return Money(100 * x)
 }
 
 func StringToMoney(s string) (Money, error) {
@@ -65,6 +64,9 @@ func StringToMoney(s string) (Money, error) {
 		fracPart, err = strconv.Atoi(subs[1])
 		if err != nil {
 			return 0, fmt.Errorf("invalid string")
+		}
+		if len(subs[1]) == 1 {
+			fracPart *= 10
 		}
 	}
 

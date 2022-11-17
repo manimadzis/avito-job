@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"avito-job/internal/domain"
-	repository2 "avito-job/internal/repository"
+	"avito-job/internal/repository"
 	"avito-job/pkg/logging"
 	"context"
 	"github.com/jmoiron/sqlx"
@@ -16,24 +16,24 @@ type repo struct {
 
 func (r repo) GetBalance(ctx context.Context, dto *domain.GetBalanceDTO) (domain.Money, error) {
 	r.logger.Tracef("GetBalance(%v, %#v)", ctx, *dto)
-	var amount float64
+	var amount domain.Money
 	row := r.db.QueryRowContext(ctx, "select get_balance($1)", dto.UserId)
 	err := row.Err()
 	if err != nil {
 		if pqerr, ok := err.(*pq.Error); ok {
 			if pqerr.Code.Name() == "no_data_found" {
-				r.logger.Debugf("GetBalance error: %v", repository2.ErrUnknownUser)
-				return domain.Money(0), repository2.ErrUnknownUser
+				r.logger.Debugf("GetBalance error: %v", repository.ErrUnknownUser)
+				return domain.Money(0), repository.ErrUnknownUser
 			}
 		}
-		r.logger.Debugf("GetBalance error: %v", repository2.ErrUnknownUser)
+		r.logger.Debugf("GetBalance error: %v", repository.ErrUnknownUser)
 		return domain.Money(0), err
 	}
 	err = row.Scan(&amount)
 	if err != nil {
-		r.logger.Errorf("GetBalance error: %v", repository2.ErrUnknownUser)
+		r.logger.Errorf("GetBalance error: %v", err)
 	}
-	return domain.Float64ToMoney(amount), err
+	return amount, err
 }
 
 func (r repo) ReplenishBalance(ctx context.Context, dto *domain.ReplenishBalanceDTO) error {
@@ -54,7 +54,16 @@ func (r repo) ReserveMoney(ctx context.Context, dto *domain.ReserveMoneyDTO) err
 		dto.OrderId,
 		dto.Description)
 	if err != nil {
-		r.logger.Errorf("RecognizeRevenue error: %v", err)
+		r.logger.Errorf("Reserve money error: %v", err)
+		if pqerr, ok := err.(*pq.Error); ok {
+			if pqerr.Code.Name() == "no_data_found" {
+				return repository.ErrUnknownUser
+			} else if pqerr.Message == "NOT_ENOUGH_MONEY" {
+				return repository.ErrNotEnoughMoney
+			} else if pqerr.Code.Name() == "unique_violation" {
+				return repository.ErrTransactionAlreadyExists
+			}
+		}
 	}
 	return err
 }
@@ -67,6 +76,11 @@ func (r repo) RecognizeRevenue(ctx context.Context, dto *domain.RecognizeRevenue
 		dto.ServiceId,
 		dto.OrderId)
 	if err != nil {
+		if pqerr, ok := err.(*pq.Error); ok {
+			if pqerr.Message == "RECOGNIZE_UNKNOWN_TRANSACTION" {
+				return repository.ErrUnknownTransaction
+			}
+		}
 		r.logger.Errorf("RecognizeRevenue error: %v", err)
 	}
 	return err
@@ -81,23 +95,13 @@ func (r repo) GetMonthlyReport(ctx context.Context, dto *domain.GetMonthlyReport
 		r.logger.Errorf("GetMonthlyReport error: %v", err)
 		return nil, err
 	}
-	var tmprow struct {
-		ServiceName string `json:"service_name" db:"service_name"`
-		Revenue     string `json:"revenue" db:"revenue"`
-	}
+
 	var row domain.MonthlyReportRow
 	var report domain.MonthlyReport
 	for rows.Next() {
-		if err := rows.StructScan(&tmprow); err != nil {
+		if err := rows.StructScan(&row); err != nil {
 			return nil, err
 		}
-		m, err := domain.StringToMoney(tmprow.Revenue)
-		if err != nil {
-			r.logger.Errorf("Can't convert Revernue to domain.Money")
-			continue
-		}
-		row.ServiceName = tmprow.ServiceName
-		row.Revenue = m
 		report = append(report, row)
 	}
 	return report, nil
@@ -121,6 +125,11 @@ func (r repo) GetHistory(ctx context.Context, dto *domain.GetHistoryDTO) (domain
 			dto.Revers)
 	}
 	if err != nil {
+		if pqerr, ok := err.(*pq.Error); ok {
+			if pqerr.Code.Name() == "no_data_found" && pqerr.Message == "UNKNOWN_USER" {
+				return nil, repository.ErrUnknownUser
+			}
+		}
 		r.logger.Errorf("GetMonthlyReport error: %v", err)
 		return nil, err
 	}
@@ -130,13 +139,12 @@ func (r repo) GetHistory(ctx context.Context, dto *domain.GetHistoryDTO) (domain
 		if err := rows.StructScan(&row); err != nil {
 			return nil, err
 		}
-
 		history = append(history, row)
 	}
 	return history, nil
 }
 
-func NewRepository(db *sqlx.DB, logger logging.Logger) repository2.Repository {
+func NewRepository(db *sqlx.DB, logger logging.Logger) repository.Repository {
 	return &repo{
 		db:     db,
 		logger: logger,

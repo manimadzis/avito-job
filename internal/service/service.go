@@ -12,6 +12,8 @@ type Service interface {
 	GetMonthlyReport(ctx context.Context, dto *domain.GetMonthlyReportDTO) (domain.MonthlyReport, error)
 	ReplenishBalance(ctx context.Context, dto *domain.ReplenishBalanceDTO) error
 	GetHistory(ctx context.Context, dto *domain.GetHistoryDTO) (domain.History, error)
+	ReserveMoney(ctx context.Context, dto *domain.ReserveMoneyDTO) error
+	RecognizeRevenue(ctx context.Context, dto *domain.RecognizeRevenueDTO) error
 }
 
 type service struct {
@@ -31,7 +33,18 @@ func (s *service) ReplenishBalance(ctx context.Context, dto *domain.ReplenishBal
 }
 
 func (s *service) GetHistory(ctx context.Context, dto *domain.GetHistoryDTO) (domain.History, error) {
+	if dto.Limit == 0 {
+		dto.Limit = MaxHistoryRowPerRequest
+	}
 	return s.repo.GetHistory(ctx, dto)
+}
+
+func (s *service) ReserveMoney(ctx context.Context, dto *domain.ReserveMoneyDTO) error {
+	return s.repo.ReserveMoney(ctx, dto)
+}
+
+func (s *service) RecognizeRevenue(ctx context.Context, dto *domain.RecognizeRevenueDTO) error {
+	return s.repo.RecognizeRevenue(ctx, dto)
 }
 
 func NewService(repo repository.Repository, logger logging.Logger) Service {

@@ -19,10 +19,9 @@ CREATE TABLE IF NOT EXISTS "transaction" (
     service_id bigint,
     order_id bigint,
     "description" text,
-    "timestamp" timestamp DEFAULT CURRENT_TIMESTAMP
+    "timestamp" timestamp DEFAULT CURRENT_TIMESTAMP,
+    unique (user_id, amount, service_od, order_id)
 );
-
-CREATE INDEX transaction_user_service_order_amount_index ON "transaction" (user_id, amount, service_id, order_id);
 
 CREATE TABLE IF NOT EXISTS "service" (
     id bigint PRIMARY KEY,
@@ -37,6 +36,24 @@ AS $$
     ON CONFLICT (id)
         DO UPDATE SET
             "name" = add_service."name";
+$$;
+
+-- Raise exception no_data_found with message UNKNOWN_USER if user doesn't exist
+CREATE OR REPLACE PROCEDURE check_user (user_id bigint)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    PERFORM
+        1
+    FROM
+        "user"
+    WHERE
+        id = user_id;
+    IF NOT found THEN
+        RAISE EXCEPTION no_data_found
+            USING message = 'UNKNOWN_USER';
+        END IF;
+END;
 $$;
 
 CREATE OR REPLACE PROCEDURE replenish_balance (user_id bigint, amount MONEY_)
@@ -60,7 +77,7 @@ INSERT INTO "transaction" (user_id, amount, service_id, order_id, status)
 END;
 $$;
 
--- Raise no_data_found if user_id is unknown
+-- Raise exception no_data_found if user doesn't exist
 CREATE OR REPLACE FUNCTION get_balance (user_id bigint)
     RETURNS MONEY_
     LANGUAGE plpgsql
@@ -78,7 +95,8 @@ BEGIN
 END;
 $$;
 
--- Raise exception with MESSAGE = NOT_ENOUGH_MONEY if amount greater than balance
+-- Raise exception with message NOT_ENOUGH_MONEY if amount greater than balance
+-- Raise exception no_data_found if user doesn't exist
 CREATE OR REPLACE PROCEDURE reserve_money (user_id bigint, amount MONEY_, service_id bigint, order_id bigint, description text DEFAULT NULL)
 LANGUAGE plpgsql
 AS $$
@@ -91,13 +109,15 @@ BEGIN
             "user"
         SET
             reserved_balance = reserved_balance + amount,
-            balance = balance - amount;
+            balance = balance - amount
+        WHERE
+            id = user_id;
         INSERT INTO "transaction" (user_id, amount, service_id, order_id, "status", "description")
             VALUES (user_id, - amount, service_id, order_id, 'PENDING', "description");
 END;
 $$;
 
--- Raise exception with MESSAGE = RECOGNIZE_UNKNOWN_TRANSACTION if don't update any transaction
+-- Raise exception with message RECOGNIZE_UNKNOWN_TRANSACTION if don't update any transaction
 CREATE OR REPLACE PROCEDURE recognize_revenue (user_id bigint, amount MONEY_, service_id bigint, order_id bigint)
 LANGUAGE plpgsql
 AS $$
@@ -114,6 +134,7 @@ BEGIN
             AND t.service_id = recognize_revenue.service_id
             AND t.order_id = recognize_revenue.order_id
             AND t.amount = - recognize_revenue.amount
+            and t.status = 'PENDING'
         RETURNING
             1
 )
@@ -158,6 +179,7 @@ WHERE
     service_id IS NOT NULL
 $$;
 
+-- Raise exception no_data_found with message UNKNOWN_USER if user doesn't exist
 CREATE OR REPLACE FUNCTION get_history_sorted_by_timestamp (user_id bigint, "offset" bigint, "limit" bigint, reverse boolean DEFAULT FALSE)
     RETURNS TABLE (
         "timestamp" timestamp,
@@ -166,6 +188,7 @@ CREATE OR REPLACE FUNCTION get_history_sorted_by_timestamp (user_id bigint, "off
     LANGUAGE plpgsql
     AS $$
 BEGIN
+    CALL check_user (user_id);
     IF reverse THEN
         RETURN QUERY
         SELECT
@@ -195,3 +218,44 @@ BEGIN
     END IF;
 END;
 $$;
+
+-- Raise exception no_data_found with message UNKNOWN_USER if user doesn't exist
+CREATE OR REPLACE FUNCTION get_history_sorted_by_amount (user_id bigint, "offset" bigint, "limit" bigint, reverse boolean DEFAULT FALSE)
+    RETURNS TABLE (
+        "timestamp" timestamp,
+        amount MONEY_,
+        "description" text)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    CALL check_user (user_id);
+    IF reverse THEN
+        RETURN QUERY
+        SELECT
+            t."timestamp",
+            t.amount,
+            coalesce(t."description", 'No desctiption')
+        FROM
+            "transaction" t
+        WHERE
+            t.user_id = get_history_sorted_by_timestamp.user_id
+        ORDER BY
+            t.amount ASC
+        LIMIT "limit" OFFSET "offset";
+    ELSE
+        RETURN QUERY
+        SELECT
+            t."timestamp",
+            t.amount,
+            coalesce(t."description", 'No desctiption')
+        FROM
+            "transaction" t
+        WHERE
+            t.user_id = get_history_sorted_by_timestamp.user_id
+        ORDER BY
+            t.amount DESC
+        LIMIT "limit" OFFSET "offset";
+    END IF;
+END;
+$$;
+

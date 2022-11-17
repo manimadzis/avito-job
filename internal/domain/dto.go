@@ -12,7 +12,7 @@ type GetBalanceDTO struct {
 
 func (d GetBalanceDTO) Validate() error {
 	return validation.ValidateStruct(&d,
-		validation.Field(&d.UserId, validation.Required, validation.Min(uint(1))),
+		validation.Field(&d.UserId, validation.Required, validation.Min(uint(0))),
 	)
 }
 
@@ -35,6 +35,15 @@ type RecognizeRevenueDTO struct {
 	OrderId   uint  `json:"order_id"`
 }
 
+func (d RecognizeRevenueDTO) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.UserId, validation.Required, validation.Min(uint(1))),
+		validation.Field(&d.Amount, validation.Required, validation.Min(Money(0))),
+		validation.Field(&d.ServiceId, validation.Required, validation.Min(uint(1))),
+		validation.Field(&d.OrderId, validation.Required, validation.Min(uint(1))),
+	)
+}
+
 type ReserveMoneyDTO struct {
 	UserId      uint   `json:"user_id"`
 	Amount      Money  `json:"amount"`
@@ -43,15 +52,25 @@ type ReserveMoneyDTO struct {
 	Description string `json:"description"`
 }
 
+func (d ReserveMoneyDTO) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.UserId, validation.Required, validation.Min(uint(1))),
+		validation.Field(&d.Amount, validation.Required, validation.Min(Money(0))),
+		validation.Field(&d.ServiceId, validation.Required, validation.Min(uint(1))),
+		validation.Field(&d.OrderId, validation.Required, validation.Min(uint(1))),
+	)
+}
+
 type ReplenishBalanceDTO struct {
-	UserId uint  `json:"user_id"`
-	Amount Money `json:"amount"`
+	UserId      uint   `json:"user_id"`
+	Amount      Money  `json:"amount"`
+	Description string `json:"description"`
 }
 
 func (d ReplenishBalanceDTO) Validate() error {
 	return validation.ValidateStruct(&d,
 		validation.Field(&d.UserId, validation.Required, validation.Min(uint(1))),
-		validation.Field(&d.Amount, validation.Required, validation.Min(Money(1))),
+		validation.Field(&d.Amount, validation.Required, validation.Min(Money(0))),
 	)
 }
 
