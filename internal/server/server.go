@@ -38,7 +38,7 @@ func NewServer(config *Config, service service.Service, logger logging.Logger) S
 }
 
 func (s *server) ListenAndServe() error {
-	s.logger.Info("Starting server...")
+	s.logger.Infof("Starting server on %s:%s", s.config.Host, s.config.Port)
 	return s.httpServer.ListenAndServe()
 }
 

@@ -2,4 +2,4 @@ package repository
 
 import "fmt"
 
-var ErrUnknownUser = fmt.Errorf("unknow user")
+var ErrUnknownUser = fmt.Errorf("unknown user")

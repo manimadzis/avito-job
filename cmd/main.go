@@ -5,6 +5,8 @@ import (
 	"avito-job/internal/config"
 	"avito-job/pkg/logging"
 	"context"
+	"flag"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,16 +15,18 @@ import (
 )
 
 func main() {
-	logger := logging.Get()
-	conf := &config.Config{
-		ServerHost:   "localhost",
-		ServerPort:   "9876",
-		DBHost:       "localhost",
-		DBPort:       "5432",
-		DBUsername:   "postgres",
-		DBPassword:   "pass",
-		DatabaseName: "bank_service",
+	configPath := flag.String("config", "./configs/config.yaml", "path to config")
+	flag.Parse()
+
+	conf, err := config.Load(*configPath)
+	if err != nil {
+		log.Fatalf("Cant load config: %v", err)
 	}
+	if err := logging.Init(conf.LogLevel); err != nil {
+		log.Fatalf("Cant' init logger: %v", err)
+	}
+
+	logger := logging.Get()
 
 	a := app.NewApp(conf, *logger)
 	var wg sync.WaitGroup

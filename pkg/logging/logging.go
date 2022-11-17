@@ -18,7 +18,7 @@ func Get() *Logger {
 	return &Logger{logger}
 }
 
-func init() {
+func Init(level string) error {
 	log := logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
 		CallerPrettyfier: func(frame *runtime.Frame) (function string, file string) {
@@ -30,6 +30,12 @@ func init() {
 	})
 
 	log.SetOutput(os.Stdout)
-
+	lvl, err := logrus.ParseLevel(level)
+	if err != nil {
+		fmt.Errorf("invalid level")
+		return err
+	}
+	log.SetLevel(lvl)
 	logger = logrus.NewEntry(log)
+	return nil
 }

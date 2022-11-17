@@ -1,0 +1,8 @@
+server_host: localhost
+server_port: 9876
+db_host: localhost
+db_port: 5432
+db_username: postgres
+db_password: pass
+database_name: bank_service
+log_level: trace
