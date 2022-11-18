@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"avito-job/internal/domain"
 	"context"
+	"github.com/manimadzis/avito-job/internal/domain"
 )
 
 type Repository interface {
@@ -17,4 +17,6 @@ type Repository interface {
 	GetMonthlyReport(ctx context.Context, dto *domain.GetMonthlyReportDTO) (domain.MonthlyReport, error)
 	// GetHistory return ErrUnknownUser if user doesn't exist
 	GetHistory(ctx context.Context, dto *domain.GetHistoryDTO) (domain.History, error)
+	//CancelTransaction return ErrUnknownTransaction if transaction with given fields doesn't exist
+	CancelTransaction(ctx context.Context, dto *domain.CancelTransactionDTO) error
 }

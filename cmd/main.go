@@ -1,11 +1,11 @@
 package main
 
 import (
-	"avito-job/internal/app"
-	"avito-job/internal/config"
-	"avito-job/pkg/logging"
 	"context"
 	"flag"
+	"github.com/manimadzis/avito-job/internal/app"
+	"github.com/manimadzis/avito-job/internal/config"
+	"github.com/manimadzis/avito-job/pkg/logging"
 	"log"
 	"net/http"
 	"os"

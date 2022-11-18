@@ -214,6 +214,33 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "cancel reserve",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost:9876/v1/user/:user_id/cancel",
+					"host": [
+						"localhost"
+					],
+					"port": "9876",
+					"path": [
+						"v1",
+						"user",
+						":user_id",
+						"cancel"
+					],
+					"variable": [
+						{
+							"key": "user_id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	]
 }

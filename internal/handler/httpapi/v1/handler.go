@@ -1,10 +1,10 @@
 package v1
 
 import (
-	"avito-job/internal/domain"
-	"avito-job/internal/repository"
-	"avito-job/internal/service"
-	"avito-job/pkg/logging"
+	"github.com/manimadzis/avito-job/internal/domain"
+	"github.com/manimadzis/avito-job/internal/repository"
+	"github.com/manimadzis/avito-job/internal/service"
+	"github.com/manimadzis/avito-job/pkg/logging"
 
 	"encoding/json"
 	"fmt"
@@ -40,6 +40,7 @@ func NewHandler(config *Config, router *httprouter.Router, service service.Servi
 
 func (h *Handler) initRouter() {
 	h.router.POST("/v1/user/:user_id/reserve", h.reserveBalance)
+	h.router.POST("/v1/user/:user_id/cancel", h.cancelTransaction)
 	h.router.POST("/v1/user/:user_id/recognize", h.recognizeRevenue)
 	h.router.GET("/v1/user/:user_id/balance", h.getBalance)
 	h.router.POST("/v1/user/:user_id/balance", h.replenishBalance)
@@ -260,6 +261,39 @@ func (h *Handler) recognizeRevenue(w http.ResponseWriter, r *http.Request, ps ht
 	}
 
 	err = h.service.RecognizeRevenue(r.Context(), &dto)
+	if err != nil {
+		if err == repository.ErrUnknownTransaction {
+			h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
+			return
+		}
+		h.logger.Error(err)
+		h.sendResponse(w, http.StatusInternalServerError, nil)
+	}
+	h.sendResponse(w, http.StatusNoContent, nil)
+}
+
+func (h *Handler) cancelTransaction(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	h.logger.Tracef("cancelTransaction handle request %v", r)
+	data, err := h.handleBody(w, r)
+	if err != nil {
+		return
+	}
+
+	dto := domain.CancelTransactionDTO{}
+	dto.UserId, err = h.getUserId(ps)
+	if err != nil {
+		h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
+		h.logger.Error(err)
+		return
+	}
+
+	if err := h.parseBytes(data, &dto); err != nil {
+		h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})
+		h.logger.Error(err)
+		return
+	}
+
+	err = h.service.CancelTransaction(r.Context(), &dto)
 	if err != nil {
 		if err == repository.ErrUnknownTransaction {
 			h.sendError(w, http.StatusBadRequest, ErrorResponse{Msg: err.Error()})

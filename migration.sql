@@ -118,7 +118,7 @@ BEGIN
 END;
 $$;
 
--- Raise exception with message RECOGNIZE_UNKNOWN_TRANSACTION if don't update any transaction
+-- Raise exception with message UNKNOWN_TRANSACTION if don't update any transaction
 CREATE OR REPLACE PROCEDURE recognize_revenue (user_id bigint, amount MONEY_, service_id bigint, order_id bigint)
 LANGUAGE plpgsql
 AS $$
@@ -145,7 +145,7 @@ BEGIN
         cte;
     IF affected_number < 1 THEN
         RAISE EXCEPTION
-            USING MESSAGE = 'RECOGNIZE_UNKNOWN_TRANSACTION';
+            USING MESSAGE = 'UNKNOWN_TRANSACTION';
         END IF;
         UPDATE
             "user"
@@ -262,3 +262,41 @@ BEGIN
 END;
 $$;
 
+
+
+-- Raise exception with message UNKNOWN_TRANSACTION if don't update any transaction
+CREATE OR REPLACE PROCEDURE cancel_transaction (user_id bigint, amount MONEY_, service_id bigint, order_id bigint)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    affected_number int;
+BEGIN
+    WITH cte AS (
+        UPDATE
+            "transaction" t
+        SET
+            status = 'CANCELED'
+        WHERE
+            t.user_id = cancel_transaction.user_id
+            AND t.service_id = cancel_transaction.service_id
+            AND t.order_id = cancel_transaction.order_id
+            AND t.amount = - cancel_transaction.amount
+            and t.status = 'PENDING'
+        RETURNING
+            1
+)
+    SELECT
+        count(*) INTO affected_number
+    FROM
+        cte;
+    IF affected_number < 1 THEN
+        RAISE EXCEPTION
+            USING MESSAGE = 'UNKNOWN_TRANSACTION';
+        END IF;
+        UPDATE
+            "user"
+        SET
+            reserved_balance = reserved_balance - amount,
+            balance = balance + amount;
+END;
+$$;

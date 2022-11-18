@@ -77,8 +77,7 @@ paths:
             schema:
               allOf:
                 - $ref: "#/components/schemas/amount"
-                - name: description
-                  type: object
+                - type: object
                   properties:
                     description:
                       example: Пополнение VISA
@@ -154,12 +153,55 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/history_record"
+                required:
+                  - length
+                  - items
         '400':
           $ref: "#/components/responses/bad_request_error"
         '500':
           $ref: "#/components/responses/internal_server_error"
 
-  /v1/user/{user_id}/balance/recognize:
+  /v1/user/{user_id}/recognize:
+    post:
+      tags:
+        - user
+      summary: Признать выручку
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/service_order_amount"
+      responses:
+        '204':
+          description: Успешно признана
+        '400':
+          $ref: "#/components/responses/bad_request_error"
+        '500':
+          $ref: "#/components/responses/internal_server_error"
+
+  /v1/user/{user_id}/cancel:
+    post:
+      tags:
+        - user
+      summary: Отменить транзакцию
+      parameters:
+        - $ref: "#/components/parameters/user_id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/service_order_amount"
+      responses:
+        '204':
+          description: Успешно отменена
+        '400':
+          $ref: "#/components/responses/bad_request_error"
+        '500':
+          $ref: "#/components/responses/internal_server_error"
+
+  /v1/user/{user_id}/balance/:
     post:
       tags:
         - user

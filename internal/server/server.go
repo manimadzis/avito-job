@@ -1,12 +1,12 @@
 package server
 
 import (
-	"avito-job/internal/handler/httpapi/v1"
-	"avito-job/internal/service"
-	"avito-job/pkg/logging"
 	"context"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"github.com/manimadzis/avito-job/internal/handler/httpapi/v1"
+	"github.com/manimadzis/avito-job/internal/service"
+	"github.com/manimadzis/avito-job/pkg/logging"
 	"net/http"
 	"time"
 )

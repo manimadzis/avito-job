@@ -1,15 +1,15 @@
 package app
 
 import (
-	"avito-job/internal/config"
-	"avito-job/internal/repository"
-	"avito-job/internal/repository/postgres"
-	"avito-job/internal/server"
-	"avito-job/internal/service"
-	dbclient "avito-job/pkg/dbclient/postgres"
-	"avito-job/pkg/logging"
 	"context"
 	"github.com/jmoiron/sqlx"
+	"github.com/manimadzis/avito-job/internal/config"
+	"github.com/manimadzis/avito-job/internal/repository"
+	"github.com/manimadzis/avito-job/internal/repository/postgres"
+	"github.com/manimadzis/avito-job/internal/server"
+	"github.com/manimadzis/avito-job/internal/service"
+	dbclient "github.com/manimadzis/avito-job/pkg/dbclient/postgres"
+	"github.com/manimadzis/avito-job/pkg/logging"
 )
 
 type App struct {

@@ -1,12 +1,12 @@
 package service
 
 import (
-	"avito-job/internal/domain"
-	"avito-job/internal/repository"
-	"avito-job/pkg/logging"
 	"context"
 	"encoding/csv"
 	"fmt"
+	"github.com/manimadzis/avito-job/internal/domain"
+	"github.com/manimadzis/avito-job/internal/repository"
+	"github.com/manimadzis/avito-job/pkg/logging"
 	"os"
 	"path/filepath"
 )
@@ -18,6 +18,7 @@ type Service interface {
 	GetHistory(ctx context.Context, dto *domain.GetHistoryDTO) (domain.History, error)
 	ReserveMoney(ctx context.Context, dto *domain.ReserveMoneyDTO) error
 	RecognizeRevenue(ctx context.Context, dto *domain.RecognizeRevenueDTO) error
+	CancelTransaction(ctx context.Context, dto *domain.CancelTransactionDTO) error
 }
 
 type service struct {
@@ -104,6 +105,11 @@ func (s *service) ReserveMoney(ctx context.Context, dto *domain.ReserveMoneyDTO)
 func (s *service) RecognizeRevenue(ctx context.Context, dto *domain.RecognizeRevenueDTO) error {
 	s.logger.Tracef("service.RecognizeRevenue(%v, %#v)", ctx, *dto)
 	return s.repo.RecognizeRevenue(ctx, dto)
+}
+
+func (s *service) CancelTransaction(ctx context.Context, dto *domain.CancelTransactionDTO) error {
+	s.logger.Tracef("service.CancelTransaction(%v, %#v)", ctx, *dto)
+	return s.repo.CancelTransaction(ctx, dto)
 }
 
 func NewService(config *Config, repo repository.Repository, logger logging.Logger) Service {

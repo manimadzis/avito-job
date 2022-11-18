@@ -44,6 +44,22 @@ func (d RecognizeRevenueDTO) Validate() error {
 	)
 }
 
+type CancelTransactionDTO struct {
+	UserId    uint  `json:"user_id"`
+	Amount    Money `json:"amount"`
+	ServiceId uint  `json:"service_id"`
+	OrderId   uint  `json:"order_id"`
+}
+
+func (d CancelTransactionDTO) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.UserId, validation.Required, validation.Min(uint(1))),
+		validation.Field(&d.Amount, validation.Required, validation.Min(Money(0))),
+		validation.Field(&d.ServiceId, validation.Required, validation.Min(uint(1))),
+		validation.Field(&d.OrderId, validation.Required, validation.Min(uint(1))),
+	)
+}
+
 type ReserveMoneyDTO struct {
 	UserId      uint   `json:"user_id"`
 	Amount      Money  `json:"amount"`

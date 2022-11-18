@@ -1,12 +1,12 @@
 package postgres
 
 import (
-	"avito-job/internal/domain"
-	"avito-job/internal/repository"
-	"avito-job/pkg/logging"
 	"context"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"github.com/manimadzis/avito-job/internal/domain"
+	"github.com/manimadzis/avito-job/internal/repository"
+	"github.com/manimadzis/avito-job/pkg/logging"
 )
 
 type repo struct {
@@ -99,11 +99,29 @@ func (r repo) RecognizeRevenue(ctx context.Context, dto *domain.RecognizeRevenue
 		dto.OrderId)
 	if err != nil {
 		if pqerr, ok := err.(*pq.Error); ok {
-			if pqerr.Message == "RECOGNIZE_UNKNOWN_TRANSACTION" {
+			if pqerr.Message == "UNKNOWN_TRANSACTION" {
 				return repository.ErrUnknownTransaction
 			}
 		}
 		r.logger.Errorf("RecognizeRevenue error: %v", err)
+	}
+	return err
+}
+
+func (r repo) CancelTransaction(ctx context.Context, dto *domain.CancelTransactionDTO) error {
+	r.logger.Tracef("CancelTransaction(%v, %#v)", ctx, *dto)
+	_, err := r.db.ExecContext(ctx, "CALL cancel_transaction($1, $2, $3, $4)",
+		dto.UserId,
+		dto.Amount.String(),
+		dto.ServiceId,
+		dto.OrderId)
+	if err != nil {
+		if pqerr, ok := err.(*pq.Error); ok {
+			if pqerr.Message == "UNKNOWN_TRANSACTION" {
+				return repository.ErrUnknownTransaction
+			}
+		}
+		r.logger.Errorf("CancelTransaction error: %v", err)
 	}
 	return err
 }
