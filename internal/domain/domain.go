@@ -80,6 +80,7 @@ func (m *Money) String() string {
 type MonthlyReportRow struct {
 	ServiceName string `json:"service_name" db:"service_name"`
 	Revenue     Money  `json:"revenue" db:"revenue"`
+	ServiceId   uint   `json:"-" db:"service_id"`
 }
 type MonthlyReport []MonthlyReportRow
 

@@ -28,8 +28,15 @@ paths:
                   properties:
                     description:
                       type: string
-                      description: Описание
+                      description: Причина резервирования
                       example: "Оплата услуги связи"
+                - type: object
+                  properties:
+                    service_name:
+                      type: string
+                      description: Название услуги с заданным Id (хранится последнее переданное)
+                      example: Услуга связи
+
       responses:
         '204':
           description: Успешно зарезервировано
@@ -61,17 +68,24 @@ paths:
     post:
       tags:
         - user
-      summary: Изменить баланс пользователя
+      summary: Пополнить баланс пользователя
       parameters:
         - $ref: "#/components/parameters/user_id"
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/amount"
+              allOf:
+                - $ref: "#/components/schemas/amount"
+                - name: description
+                  type: object
+                  properties:
+                    description:
+                      example: Пополнение VISA
+                      type: string
       responses:
-        '201':
-          description: Успешно изменен баланс пользователя
+        '204':
+          description: Успешно пополнен баланс пользователя
         '400':
           $ref: "#/components/responses/bad_request_error"
         '500':

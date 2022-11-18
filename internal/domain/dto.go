@@ -50,6 +50,7 @@ type ReserveMoneyDTO struct {
 	ServiceId   uint   `json:"service_id"`
 	OrderId     uint   `json:"order_id"`
 	Description string `json:"description"`
+	ServiceName string `json:"service_name"`
 }
 
 func (d ReserveMoneyDTO) Validate() error {
@@ -75,11 +76,11 @@ func (d ReplenishBalanceDTO) Validate() error {
 }
 
 type GetHistoryDTO struct {
-	UserId uint   `json:"user_id"`
-	Offset int    `json:"offset"`
-	Limit  int    `json:"limit"`
-	SortBy string `json:"sort_by"`
-	Revers bool   `json:"revers"`
+	UserId  uint   `json:"user_id"`
+	Offset  int    `json:"offset"`
+	Limit   int    `json:"limit"`
+	SortBy  string `json:"sort_by"`
+	Reverse bool   `json:"reverse"`
 }
 
 func (d GetHistoryDTO) Validate() error {

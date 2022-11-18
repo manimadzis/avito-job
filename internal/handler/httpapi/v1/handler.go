@@ -22,6 +22,11 @@ type Handler struct {
 	config  *Config
 }
 
+type Collection struct {
+	Items  interface{} `json:"items"`
+	Length int         `json:"length"`
+}
+
 func NewHandler(config *Config, router *httprouter.Router, service service.Service, logger logging.Logger) *Handler {
 	h := &Handler{
 		router:  router,
@@ -184,7 +189,10 @@ func (h *Handler) getHistory(w http.ResponseWriter, r *http.Request, ps httprout
 		history = domain.History{}
 	}
 
-	h.sendResponse(w, http.StatusOK, history)
+	h.sendResponse(w, http.StatusOK, Collection{
+		Items:  history,
+		Length: len(history),
+	})
 }
 
 func (h *Handler) getReport(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -279,9 +287,11 @@ func (h *Handler) sendResponse(w http.ResponseWriter, status int, data interface
 		}
 		h.logger.Debugf("json: %s", string(jsonData))
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.Write(jsonData)
 	}
 	w.WriteHeader(status)
+	if data != nil {
+		w.Write(jsonData)
+	}
 }
 
 func (h *Handler) parseBytes(data []byte, dto domain.DTO) error {

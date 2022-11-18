@@ -38,6 +38,20 @@ func (s *service) GetMonthlyReportPath(ctx context.Context, dto *domain.GetMonth
 		return "", err
 	}
 	s.logger.Debug("Report: ", report)
+
+	for i, row := range report {
+		if row.ServiceName == "" {
+			report[i].ServiceName = fmt.Sprintf("Услуга №%d", row.ServiceId)
+		}
+	}
+	if _, err := os.Stat(s.config.FileServerDirectory); os.IsNotExist(err) {
+		err := os.Mkdir(s.config.FileServerDirectory, 0666)
+		if err != nil {
+			s.logger.Errorf("can't create %s dir", s.config.FileServerDirectory)
+			return "", err
+		}
+	}
+
 	filepath := filepath.Join(s.config.FileServerDirectory, fmt.Sprintf("%d-%d.csv", dto.Year, dto.Month))
 	file, err := os.Create(filepath)
 	if err != nil {
@@ -47,6 +61,7 @@ func (s *service) GetMonthlyReportPath(ctx context.Context, dto *domain.GetMonth
 	defer file.Close()
 
 	csvWriter := csv.NewWriter(file)
+	csvWriter.Comma = ';'
 	defer csvWriter.Flush()
 	for _, row := range report {
 		err = csvWriter.Write([]string{row.ServiceName, row.Revenue.String()})
@@ -61,6 +76,9 @@ func (s *service) GetMonthlyReportPath(ctx context.Context, dto *domain.GetMonth
 }
 func (s *service) ReplenishBalance(ctx context.Context, dto *domain.ReplenishBalanceDTO) error {
 	s.logger.Tracef("service.ReplenishBalance(%v, %#v)", ctx, *dto)
+	if dto.Description == "" {
+		dto.Description = fmt.Sprintf("Пополнение баланса")
+	}
 	return s.repo.ReplenishBalance(ctx, dto)
 }
 
@@ -74,6 +92,12 @@ func (s *service) GetHistory(ctx context.Context, dto *domain.GetHistoryDTO) (do
 
 func (s *service) ReserveMoney(ctx context.Context, dto *domain.ReserveMoneyDTO) error {
 	s.logger.Tracef("service.ReserveMoney(%v, %#v)", ctx, *dto)
+	if dto.ServiceName == "" {
+		dto.ServiceName = fmt.Sprintf("Услуга №%d", dto.ServiceId)
+	}
+	if dto.Description != "" {
+		dto.Description = fmt.Sprintf("Оказание услуги: %s", dto.ServiceName)
+	}
 	return s.repo.ReserveMoney(ctx, dto)
 }
 

@@ -1,0 +1,219 @@
+{
+	"info": {
+		"_postman_id": "fcbe98da-371a-4c84-8b35-a8c94c3a5324",
+		"name": "avito",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "get balance",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:9876/v1/user/:user_id/balance",
+					"host": [
+						"localhost"
+					],
+					"port": "9876",
+					"path": [
+						"v1",
+						"user",
+						":user_id",
+						"balance"
+					],
+					"variable": [
+						{
+							"key": "user_id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "replenish balance",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"amount\": \"100\",\n    \"description\": \"Пополнение VISA *1234\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9876/v1/user/:user_id/balance",
+					"host": [
+						"localhost"
+					],
+					"port": "9876",
+					"path": [
+						"v1",
+						"user",
+						":user_id",
+						"balance"
+					],
+					"variable": [
+						{
+							"key": "user_id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get report",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:9876/v1/report/:year/:month",
+					"host": [
+						"localhost"
+					],
+					"port": "9876",
+					"path": [
+						"v1",
+						"report",
+						":year",
+						":month"
+					],
+					"variable": [
+						{
+							"key": "year",
+							"value": "2022"
+						},
+						{
+							"key": "month",
+							"value": "12"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get history",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9876/v1/user/:user_id/history/:json",
+					"host": [
+						"localhost"
+					],
+					"port": "9876",
+					"path": [
+						"v1",
+						"user",
+						":user_id",
+						"history",
+						":json"
+					],
+					"variable": [
+						{
+							"key": "user_id",
+							"value": "1"
+						},
+						{
+							"key": "json",
+							"value": "{\"reverse\": false, \"limit\":10, \"offset\":0, \"sort_by\": \"timestamp\"}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "reserve money",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"amount\": \"10\",\n    \"service_id\": 999,\n    \"order_id\": 13,\n    \"description\": \"Cool\",\n    \"service_name\": \"service\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9876/v1/user/:user_id/reserve",
+					"host": [
+						"localhost"
+					],
+					"port": "9876",
+					"path": [
+						"v1",
+						"user",
+						":user_id",
+						"reserve"
+					],
+					"variable": [
+						{
+							"key": "user_id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "recognize revenue",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"amount\": \"10\",\n    \"service_id\": 999,\n    \"order_id\": 13\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9876/v1/user/:user_id/recognize",
+					"host": [
+						"localhost"
+					],
+					"port": "9876",
+					"path": [
+						"v1",
+						"user",
+						":user_id",
+						"recognize"
+					],
+					"variable": [
+						{
+							"key": "user_id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

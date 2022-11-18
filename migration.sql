@@ -2,7 +2,8 @@ CREATE DOMAIN MONEY_ AS NUMERIC(10, 2);
 
 CREATE TYPE TRANSACTION_STATUS AS ENUM (
     'PENDING',
-    'DONE'
+    'DONE',
+    'CANCELED'
 );
 
 CREATE TABLE IF NOT EXISTS "user" (
@@ -56,7 +57,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE replenish_balance (user_id bigint, amount MONEY_)
+CREATE OR REPLACE PROCEDURE replenish_balance (user_id bigint, amount MONEY_, description text)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -66,8 +67,8 @@ BEGIN
     EXCEPTION
         WHEN unique_violation THEN
     END;
-INSERT INTO "transaction" (user_id, amount, service_id, order_id, status)
-    VALUES (user_id, amount, NULL, NULL, 'DONE');
+INSERT INTO "transaction" (user_id, amount, service_id, order_id, status, description)
+    VALUES (user_id, amount, NULL, NULL, 'DONE', description);
             UPDATE
                 "user"
             SET
@@ -156,11 +157,13 @@ $$;
 CREATE OR REPLACE FUNCTION get_month_report (month int, year int)
     RETURNS TABLE (
         service_name text,
+        service_id bigint,
         revenue MONEY_)
     LANGUAGE SQL
     AS $$
     SELECT
-        COALESCE(s.name, FORMAT('Service #%s', s.id)),
+        COALESCE(s.name, ''),
+        service_id,
         t.amount
     FROM (
         SELECT
@@ -238,7 +241,7 @@ BEGIN
         FROM
             "transaction" t
         WHERE
-            t.user_id = get_history_sorted_by_timestamp.user_id
+            t.user_id = get_history_sorted_by_amount.user_id
         ORDER BY
             t.amount ASC
         LIMIT "limit" OFFSET "offset";
@@ -251,7 +254,7 @@ BEGIN
         FROM
             "transaction" t
         WHERE
-            t.user_id = get_history_sorted_by_timestamp.user_id
+            t.user_id = get_history_sorted_by_amount.user_id
         ORDER BY
             t.amount DESC
         LIMIT "limit" OFFSET "offset";

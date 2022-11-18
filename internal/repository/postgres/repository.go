@@ -38,7 +38,7 @@ func (r repo) GetBalance(ctx context.Context, dto *domain.GetBalanceDTO) (domain
 
 func (r repo) ReplenishBalance(ctx context.Context, dto *domain.ReplenishBalanceDTO) error {
 	r.logger.Tracef("ReplenishBalance(%v, %#v)", ctx, *dto)
-	_, err := r.db.ExecContext(ctx, "CALL replenish_balance($1, $2)", dto.UserId, dto.Amount.String())
+	_, err := r.db.ExecContext(ctx, "CALL replenish_balance($1, $2, $3)", dto.UserId, dto.Amount.String(), dto.Description)
 	if err != nil {
 		r.logger.Errorf("RecognizeRevenue error: %v", err)
 	}
@@ -47,7 +47,14 @@ func (r repo) ReplenishBalance(ctx context.Context, dto *domain.ReplenishBalance
 
 func (r repo) ReserveMoney(ctx context.Context, dto *domain.ReserveMoneyDTO) error {
 	r.logger.Tracef("ReserveMoney(%v, %#v)", ctx, *dto)
-	_, err := r.db.ExecContext(ctx, "CALL reserve_money($1, $2, $3, $4, $5)",
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		r.logger.Errorf("ReserveMoney error: %v", err)
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, "CALL reserve_money($1, $2, $3, $4, $5)",
 		dto.UserId,
 		dto.Amount.String(),
 		dto.ServiceId,
@@ -65,7 +72,22 @@ func (r repo) ReserveMoney(ctx context.Context, dto *domain.ReserveMoneyDTO) err
 			}
 		}
 	}
-	return err
+
+	if dto.ServiceName != "" {
+		_, err := tx.ExecContext(ctx, "CALL add_service($1, $2)",
+			dto.ServiceId,
+			dto.ServiceName)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		r.logger.Errorf("ReserveMoney commit failed: %v", err)
+		return err
+	}
+
+	return nil
 }
 
 func (r repo) RecognizeRevenue(ctx context.Context, dto *domain.RecognizeRevenueDTO) error {
@@ -116,13 +138,13 @@ func (r repo) GetHistory(ctx context.Context, dto *domain.GetHistoryDTO) (domain
 			dto.UserId,
 			dto.Offset,
 			dto.Limit,
-			dto.Revers)
+			dto.Reverse)
 	} else if dto.SortBy == domain.GetHistoryDTOSortByAmount {
 		rows, err = r.db.QueryxContext(ctx, "SELECT * FROM get_history_sorted_by_amount($1, $2, $3, $4)",
 			dto.UserId,
 			dto.Offset,
 			dto.Limit,
-			dto.Revers)
+			dto.Reverse)
 	}
 	if err != nil {
 		if pqerr, ok := err.(*pq.Error); ok {
